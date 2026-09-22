@@ -3593,6 +3593,45 @@ export async function registerRoutes(
   // ============ DOCUMENT MANAGEMENT ROUTES ============
 
   // Get all documents with filtering
+  // Shared document access check — mirrors the visibility filter used by
+  // GET /api/documents so that list, single-fetch, view, and download all agree.
+  // Without this, scoped (COHORT/TRACK/MATCH) documents appeared in a member's
+  // list but returned 403 on open/download.
+  async function userCanAccessDocument(
+    user: { id: string; role?: string | null },
+    doc: { id: string; uploadedById?: string | null; visibility?: string | null; cohortId?: string | null; trackId?: string | null; matchId?: string | null },
+  ): Promise<boolean> {
+    const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'ADMIN';
+    if (isAdmin) return true;
+    if (doc.uploadedById === user.id) return true;
+    if (doc.visibility === 'PUBLIC') return true;
+
+    // Explicit per-user share access
+    const accessRecords = await storage.getDocumentAccess(doc.id);
+    if (accessRecords.some(a => a.userId === user.id)) return true;
+
+    if (doc.visibility === 'PRIVATE') return false;
+
+    if (doc.visibility === 'COHORT' || doc.visibility === 'TRACK') {
+      const memberships = await db
+        .select({ cohortId: cohortMembershipsTable.cohortId, trackId: cohortMembershipsTable.trackId })
+        .from(cohortMembershipsTable)
+        .where(eq(cohortMembershipsTable.userId, user.id));
+      if (doc.visibility === 'COHORT') {
+        return !!doc.cohortId && memberships.some(m => m.cohortId === doc.cohortId);
+      }
+      return !!doc.trackId && memberships.some(m => m.trackId === doc.trackId);
+    }
+
+    if (doc.visibility === 'MATCH') {
+      if (!doc.matchId) return false;
+      const matches = await storage.getMatchesForUser(user.id);
+      return matches.some(m => m.id === doc.matchId);
+    }
+
+    return false;
+  }
+
   app.get("/api/documents", requireAuth, async (req, res, next) => {
     try {
       const user = req.user!;
@@ -3673,22 +3712,10 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Document not found" });
       }
       
-      // Check visibility permission
-      const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'ADMIN';
-      const isOwner = doc.uploadedById === user.id;
-      const isPublic = doc.visibility === 'PUBLIC';
-      
-      // Check for explicit share access
-      let hasShareAccess = false;
-      if (!isAdmin && !isOwner && !isPublic) {
-        const accessRecords = await storage.getDocumentAccess(req.params.id);
-        hasShareAccess = accessRecords.some(a => a.userId === user.id);
-      }
-      
-      if (!isAdmin && !isOwner && !isPublic && !hasShareAccess) {
+      if (!(await userCanAccessDocument(user, doc))) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       res.json(doc);
     } catch (error) {
       next(error);
@@ -3820,17 +3847,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Document not found" });
       }
       
-      const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'ADMIN';
-      const isOwner = doc.uploadedById === user.id;
-      const isPublic = doc.visibility === 'PUBLIC';
-      
-      let hasShareAccess = false;
-      if (!isAdmin && !isOwner && !isPublic) {
-        const accessRecords = await storage.getDocumentAccess(req.params.id);
-        hasShareAccess = accessRecords.some(a => a.userId === user.id);
-      }
-      
-      if (!isAdmin && !isOwner && !isPublic && !hasShareAccess) {
+      if (!(await userCanAccessDocument(user, doc))) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -3867,19 +3884,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Document not found" });
       }
 
-      // Check document access permission
-      const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'ADMIN';
-      const isOwner = doc.uploadedById === user.id;
-      const isPublic = doc.visibility === 'PUBLIC';
-
-      // Check for explicit share access
-      let hasShareAccess = false;
-      if (!isAdmin && !isOwner && !isPublic) {
-        const accessRecords = await storage.getDocumentAccess(req.params.id);
-        hasShareAccess = accessRecords.some(a => a.userId === user.id);
-      }
-
-      if (!isAdmin && !isOwner && !isPublic && !hasShareAccess) {
+      if (!(await userCanAccessDocument(user, doc))) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -3916,19 +3921,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Document not found" });
       }
       
-      // Check document access permission
-      const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'ADMIN';
-      const isOwner = doc.uploadedById === user.id;
-      const isPublic = doc.visibility === 'PUBLIC';
-      
-      // Check for explicit share access
-      let hasShareAccess = false;
-      if (!isAdmin && !isOwner && !isPublic) {
-        const accessRecords = await storage.getDocumentAccess(req.params.id);
-        hasShareAccess = accessRecords.some(a => a.userId === user.id);
-      }
-      
-      if (!isAdmin && !isOwner && !isPublic && !hasShareAccess) {
+      if (!(await userCanAccessDocument(user, doc))) {
         return res.status(403).json({ message: "Access denied" });
       }
       
