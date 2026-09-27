@@ -126,6 +126,8 @@ export default function AdminDocuments() {
     category: "RESOURCE",
     visibility: "PUBLIC",
     isTemplate: false,
+    trackId: "",
+    cohortId: "",
   });
 
   const { data: documents, isLoading } = useQuery<Document[]>({
@@ -137,6 +139,27 @@ export default function AdminDocuments() {
       if (searchQuery) params.set("search", searchQuery);
       const res = await fetch(`/api/admin/documents?${params.toString()}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch documents");
+      return res.json();
+    },
+  });
+
+  // Tracks and cohorts power the scope selectors on the upload dialog. Without a
+  // concrete trackId/cohortId, TRACK/COHORT documents are invisible to members
+  // (the read filter requires the id to match a membership).
+  const { data: tracks } = useQuery<{ id: string; name: string; slug: string }[]>({
+    queryKey: ["/api/tracks"],
+    queryFn: async () => {
+      const res = await fetch(`/api/tracks`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch tracks");
+      return res.json();
+    },
+  });
+
+  const { data: cohorts } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/cohorts"],
+    queryFn: async () => {
+      const res = await fetch(`/api/cohorts`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch cohorts");
       return res.json();
     },
   });
@@ -166,6 +189,8 @@ export default function AdminDocuments() {
       fileUrl: string;
       fileSize: number;
       mimeType: string;
+      trackId?: string;
+      cohortId?: string;
     }) => {
       return apiRequest("POST", "/api/documents", data);
     },
@@ -180,6 +205,8 @@ export default function AdminDocuments() {
         category: "RESOURCE",
         visibility: "PUBLIC",
         isTemplate: false,
+        trackId: "",
+        cohortId: "",
       });
     },
     onError: () => {
@@ -196,6 +223,14 @@ export default function AdminDocuments() {
       toast({ title: "Please enter a document name", variant: "destructive" });
       return;
     }
+    if (newDocument.visibility === "TRACK" && !newDocument.trackId) {
+      toast({ title: "Please select a track", description: "Track-scoped documents must be assigned to a track.", variant: "destructive" });
+      return;
+    }
+    if (newDocument.visibility === "COHORT" && !newDocument.cohortId) {
+      toast({ title: "Please select a cohort", description: "Cohort-scoped documents must be assigned to a cohort.", variant: "destructive" });
+      return;
+    }
     createDocumentMutation.mutate({
       name: newDocument.name,
       description: newDocument.description,
@@ -205,6 +240,9 @@ export default function AdminDocuments() {
       fileUrl: uploadedFileInfo.url,
       fileSize: uploadedFileInfo.size,
       mimeType: uploadedFileInfo.mimeType,
+      // Only send the scope id relevant to the chosen visibility.
+      trackId: newDocument.visibility === "TRACK" ? newDocument.trackId : undefined,
+      cohortId: newDocument.visibility === "COHORT" ? newDocument.cohortId : undefined,
     });
   };
 
@@ -629,6 +667,8 @@ export default function AdminDocuments() {
             category: "RESOURCE",
             visibility: "PUBLIC",
             isTemplate: false,
+            trackId: "",
+            cohortId: "",
           });
         }
       }}>
@@ -731,7 +771,7 @@ export default function AdminDocuments() {
                 <Label>Visibility</Label>
                 <Select
                   value={newDocument.visibility}
-                  onValueChange={(v) => setNewDocument(prev => ({ ...prev, visibility: v }))}
+                  onValueChange={(v) => setNewDocument(prev => ({ ...prev, visibility: v, trackId: "", cohortId: "" }))}
                 >
                   <SelectTrigger data-testid="select-doc-visibility">
                     <SelectValue />
@@ -739,11 +779,66 @@ export default function AdminDocuments() {
                   <SelectContent>
                     <SelectItem value="PUBLIC">Public</SelectItem>
                     <SelectItem value="COHORT">Cohort Only</SelectItem>
+                    <SelectItem value="TRACK">Track Only</SelectItem>
                     <SelectItem value="PRIVATE">Private</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {newDocument.visibility === "TRACK" && (
+              <div className="space-y-2">
+                <Label>Track</Label>
+                <Select
+                  value={newDocument.trackId}
+                  onValueChange={(v) => setNewDocument(prev => ({ ...prev, trackId: v }))}
+                >
+                  <SelectTrigger data-testid="select-doc-track">
+                    <SelectValue placeholder="Select a track" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(tracks ?? []).map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(!tracks || tracks.length === 0) && (
+                  <p className="text-xs text-muted-foreground">
+                    No tracks found. Create tracks before uploading track-scoped documents.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Only members assigned to this track will see this document.
+                </p>
+              </div>
+            )}
+
+            {newDocument.visibility === "COHORT" && (
+              <div className="space-y-2">
+                <Label>Cohort</Label>
+                <Select
+                  value={newDocument.cohortId}
+                  onValueChange={(v) => setNewDocument(prev => ({ ...prev, cohortId: v }))}
+                >
+                  <SelectTrigger data-testid="select-doc-cohort">
+                    <SelectValue placeholder="Select a cohort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(cohorts ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(!cohorts || cohorts.length === 0) && (
+                  <p className="text-xs text-muted-foreground">
+                    No cohorts found. Create a cohort before uploading cohort-scoped documents.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Only members of this cohort will see this document.
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               <Checkbox
