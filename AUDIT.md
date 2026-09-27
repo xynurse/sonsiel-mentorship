@@ -126,4 +126,4 @@ If you need to reproduce these findings:
 - `grep -rn "socket.io" client/src/` — confirms remaining client realtime calls.
 - `grep -rn "user.profileImage\|profileImage =" client/src/` — confirms direct-bind usage.
 - `npm run build` — should succeed and produce `dist/server.mjs` (~480 KB) and `dist/public/`.
-- `vercel inspect https://sonsiel-mentorship.vercel.app --logs --scope mike-9206s-projects` — full build log.
+- `vercel inspect https://sonsiel-mentorship.vercel.app --logs --scope xyrn` — full build log.

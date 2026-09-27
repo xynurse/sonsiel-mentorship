@@ -331,7 +331,7 @@ The platform now runs on Vercel Functions with a user-owned Neon Postgres databa
 
 - **Source dump** preserved at `/tmp/mentorship-source.dump` (212 KB, custom format) as a safety net for the database cutover. Delete after Phase 3 is verified in production.
 - **Legacy platform-managed Neon endpoint** (`ep-sweet-poetry-ahg49omp`) is no longer in the production path but still exists. Auto-suspends after inactivity. Free to leave; nothing depends on it.
-- **Vercel project**: `mike-9206s-projects/sonsiel-mentorship`, linked to the `xynurse/sonsiel-mentorship` GitHub repo. Pushes to `main` auto-deploy.
+- **Vercel project**: `xyrn/sonsiel-mentorship`, linked to the `xynurse/sonsiel-mentorship` GitHub repo. Pushes to `main` auto-deploy.
 
 ---
 
