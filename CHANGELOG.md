@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the SONSIEL Mentorship Platform during the Replit → Vercel migration.
+All notable changes to the SONSIEL Mentorship Platform (`xynurse/sonsiel-mentorship`).
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are local to the project owner.
 
@@ -27,7 +27,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dat
 
 - **DNS cutover confirmed complete** — `mentorship.sonsiel.org` resolves to Vercel and serves the production deployment.
 - **`APP_URL=https://mentorship.sonsiel.org`** set in Vercel production env; production redeployed so email links and ICS feeds use the custom domain.
-- **Replit-era artifacts removed from disk** — `cookies.txt`, `prod_cookies.txt`, `production-migration.sql`, `.replit`, `replit.md` (all were untracked).
+- **Legacy-host artifacts removed from disk** — `cookies.txt`, `prod_cookies.txt`, `production-migration.sql`, and the old host config files (all were untracked).
 - **`DEPLOYMENT_GUIDE.md` rewritten** for Vercel as the primary host.
 
 ### Pending (see [TODO.md](./TODO.md))
@@ -41,7 +41,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dat
 
 ## [1.6.0] — 2026-08-08 — Phase 12 Tier 1: match health, nudges, session feedback, survey analytics, onboarding
 
-Completes the Tier 1 slate of the Phase 12 feature roadmap and folds in the Phase 11 design follow-ups. Merged via [#2](https://github.com/xynurse/replit-mentorship/pull/2).
+Completes the Tier 1 slate of the Phase 12 feature roadmap and folds in the Phase 11 design follow-ups. Merged via [#2](https://github.com/xynurse/sonsiel-mentorship/pull/2).
 
 ### Added
 
@@ -237,14 +237,14 @@ Replaces the Phase 1 socket.io no-op stub with Ably. Live messaging, typing indi
 
 ## [1.1.0] — 2026-05-25 — Phase 3: Vercel Blob
 
-Replaces the unreachable Replit GCS sidecar (`http://127.0.0.1:1106`) with `@vercel/blob`. Document upload + view + download and profile-photo upload work end-to-end on Vercel — pending `BLOB_READ_WRITE_TOKEN` being provisioned on the project.
+Replaces the unreachable legacy GCS sidecar (`http://127.0.0.1:1106`) with `@vercel/blob`. Document upload + view + download and profile-photo upload work end-to-end on Vercel — pending `BLOB_READ_WRITE_TOKEN` being provisioned on the project.
 
 ### Added
 
 - `server/storage/blob.ts` — Vercel Blob wrapper exposing `streamRequestToBlob` (server-side upload proxy), `streamBlobToResponse` (server-mediated download with ACL preserved upstream), `deleteBlobIfExists`, `blobExists`, and `isBlobUrl`. Per-kind size and content-type limits enforced server-side.
 - `POST /api/uploads` — new auth-gated upload route. Accepts `?kind=document|profile-photo&name=<file>` with the raw file as the request body; proxies to Blob via `put()` and returns `{ url, pathname, contentType, size, name }`. Replaces the old `/api/uploads/request-url` + presigned-PUT flow.
 - `@vercel/blob` v2 dependency.
-- Vercel Blob store `store_yU2vqWCcTiKma2Tc` provisioned on the `replit-mentorship` project (2026-05-25).
+- Vercel Blob store `store_yU2vqWCcTiKma2Tc` provisioned on the `sonsiel-mentorship` project (2026-05-25).
 
 ### Changed
 
@@ -257,7 +257,7 @@ Replaces the unreachable Replit GCS sidecar (`http://127.0.0.1:1106`) with `@ver
 
 ### Removed
 
-- `server/replit_integrations/` (entire directory): `objectStorage.ts`, `objectAcl.ts`, `routes.ts`, `index.ts`. The ACL-via-GCS-metadata scaffold was vestigial (the `ObjectAccessGroupType` enum was empty); the real ACL has always been DB-driven, so nothing functional was lost.
+- The legacy object-storage integration directory (entire directory): `objectStorage.ts`, `objectAcl.ts`, `routes.ts`, `index.ts`. The ACL-via-GCS-metadata scaffold was vestigial (the `ObjectAccessGroupType` enum was empty); the real ACL has always been DB-driven, so nothing functional was lost.
 - `@google-cloud/storage`, `google-auth-library`, `@uppy/aws-s3`, `@uppy/core`, `@uppy/dashboard`, `@uppy/react` — uninstalled.
 - `/api/uploads/request-url` route — clients now POST to `/api/uploads` directly.
 
@@ -268,7 +268,7 @@ Replaces the unreachable Replit GCS sidecar (`http://127.0.0.1:1106`) with `@ver
 
 ### Migration: start fresh (2026-05-25)
 
-Instead of carrying Replit Object Storage files forward, we elected to start fresh. 12 legacy file references existed at the time of cutover:
+Instead of carrying legacy object-storage files forward, we elected to start fresh. 12 legacy file references existed at the time of cutover:
 
 - **10 document rows deleted** (program track guides + handbooks + code of conduct + mentorship guides). An admin will re-upload these through the new flow post-deploy.
 - **2 user profile photos nulled** (`profile_image` set to NULL — users see initials until they re-upload).
@@ -286,7 +286,7 @@ The platform now runs on Vercel Functions with a user-owned Neon Postgres databa
 - `api/index.ts` Vercel Function entry point that wraps the Express app.
 - `server/app.ts` — extracted Express app construction, separate from the local-dev entry.
 - `scripts/build-server.ts` — pre-bundles `server/app.ts` to `dist/server.mjs` via esbuild before Vercel's function bundler runs.
-- `scripts/seed-prod.ts` — one-shot production seed runner. Replaces the auto-seed-on-boot pattern that ran on every Replit start.
+- `scripts/seed-prod.ts` — one-shot production seed runner. Replaces the auto-seed-on-boot pattern that ran on every start under the previous host.
 - `scripts/auth-diag.ts` and `scripts/programs-diag.ts` — read-only DB diagnostic helpers.
 - `vercel.json` — build, output, function, and rewrite configuration.
 - `.env.example` — documents the four required environment variables.
@@ -294,27 +294,27 @@ The platform now runs on Vercel Functions with a user-owned Neon Postgres databa
 
 ### Changed
 
-- **Database**: dumped from Replit-managed Neon and restored into a user-owned Neon project. 59 tables and all 34 user accounts (with scrypt password hashes) verified intact.
-- **Email integration**: replaced Replit Connectors-based Resend credential fetch with direct `RESEND_API_KEY` and `RESEND_FROM_EMAIL` environment variables.
+- **Database**: dumped from the legacy platform-managed Neon project and restored into a user-owned Neon project. 59 tables and all 34 user accounts (with scrypt password hashes) verified intact.
+- **Email integration**: replaced the legacy connector-based Resend credential fetch with direct `RESEND_API_KEY` and `RESEND_FROM_EMAIL` environment variables.
 - **`getTrustedBaseUrl()`** in [server/email.ts](./server/email.ts) now prefers `APP_URL`, then `VERCEL_PROJECT_PRODUCTION_URL`, then `VERCEL_URL`, with `localhost:5000` as the final fallback.
 - **Auto-seed** moved out of the boot path. Run `npm run seed` once after the database is provisioned, instead of on every cold start.
 - **Build pipeline**: `npm run build` is now `tsx scripts/build-server.ts && vite build`. The legacy esbuild server bundle is preserved as `npm run build:legacy`.
 - **`server/static.ts`** uses `import.meta.dirname` instead of `__dirname` (ESM-safe).
-- **`vite.config.ts`** no longer references `@replit/vite-plugin-runtime-error-modal` or other Replit dev plugins.
-- **`server/routes.ts`** import for object storage points at `./replit_integrations/object_storage/index` (explicit) instead of the bare directory name. ESM doesn't allow directory imports; this was masked in dev by tsx but failed under Vercel's bundler.
+- **`vite.config.ts`** no longer references the legacy host's runtime-error-modal or other host-specific dev plugins.
+- **`server/routes.ts`** import for object storage points at the object-storage module's `index` file explicitly instead of the bare directory name. ESM doesn't allow directory imports; this was masked in dev by tsx but failed under Vercel's bundler.
 - **`server/index.ts`** is now a local-dev-only entry. It calls `createApp` and conditionally pulls in the Vite middleware. The Vercel function never imports Vite.
 - **NurseHack4Health program** soft-deleted (`is_active = false`) and removed from `ensurePrograms()` in `server/auto-seed.ts`. The user-facing program switcher hides inactive programs via `getUserPrograms()`.
 
 ### Stubbed (returns no-op responses pending Phases 2 and 3)
 
 - **`server/websocket.ts`** — every export (`setupWebSocket`, `getOnlineUsers`, `isUserOnline`, `emitNotification`, `emitNotificationCountUpdate`) is now a no-op. The original socket.io implementation lives in git history before commit `14d46fc`.
-- **Document upload, view, and download routes** still resolve, but the underlying `ObjectStorageService` will throw when its methods are called because the Replit sidecar (`http://127.0.0.1:1106`) is unreachable on Vercel.
+- **Document upload, view, and download routes** still resolve, but the underlying `ObjectStorageService` will throw when its methods are called because the legacy storage sidecar (`http://127.0.0.1:1106`) is unreachable on Vercel.
 
 ### Removed
 
-- The three `@replit/vite-plugin-*` imports from `vite.config.ts` (kept as `devDependencies` for now).
-- The Replit-Connectors-based `getCredentials()` flow in `server/email.ts`.
-- All `process.env.REPLIT_*` reads from `server/email.ts` and the email-diagnostics route in `server/routes.ts`.
+- The three legacy host-specific Vite plugin imports from `vite.config.ts` (kept as `devDependencies` for now).
+- The legacy connector-based `getCredentials()` flow in `server/email.ts`.
+- All legacy host environment-variable reads from `server/email.ts` and the email-diagnostics route in `server/routes.ts`.
 
 ### Fixed
 
@@ -330,8 +330,8 @@ The platform now runs on Vercel Functions with a user-owned Neon Postgres databa
 ### Migration / operational notes
 
 - **Source dump** preserved at `/tmp/mentorship-source.dump` (212 KB, custom format) as a safety net for the database cutover. Delete after Phase 3 is verified in production.
-- **Replit-managed Neon endpoint** (`ep-sweet-poetry-ahg49omp`) is no longer in the production path but still exists. Auto-suspends after inactivity. Free to leave; nothing depends on it.
-- **Vercel project**: `mike-9206s-projects/replit-mentorship`, linked to the `xynurse/replit-mentorship` GitHub repo. Pushes to `main` auto-deploy.
+- **Legacy platform-managed Neon endpoint** (`ep-sweet-poetry-ahg49omp`) is no longer in the production path but still exists. Auto-suspends after inactivity. Free to leave; nothing depends on it.
+- **Vercel project**: `mike-9206s-projects/sonsiel-mentorship`, linked to the `xynurse/sonsiel-mentorship` GitHub repo. Pushes to `main` auto-deploy.
 
 ---
 

@@ -9,10 +9,6 @@ vite.config.ts.*
 .env.*.local
 .vercel
 
-# Replit-specific files (no longer in use)
-.replit
-replit.md
-
 # Sensitive / credential files — never commit these
 cookies.txt
 prod_cookies.txt
