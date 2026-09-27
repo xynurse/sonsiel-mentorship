@@ -145,7 +145,7 @@ See sections below. DNS cutover and deploy wrap-up are complete (2026-06-12); re
 
 ## P0 — Phase 3 wrap-up: deploy ✅ Complete
 
-- [x] Provision Vercel Blob on the `replit-mentorship` project.
+- [x] Provision Vercel Blob on the `sonsiel-mentorship` project.
 - [x] `BLOB_READ_WRITE_TOKEN` confirmed set on Vercel Production + Preview.
 - [x] `ABLY_API_KEY` set on Vercel.
 - [x] Pushed to `main`; Vercel auto-deploying.
@@ -173,7 +173,7 @@ See sections below. DNS cutover and deploy wrap-up are complete (2026-06-12); re
 ## P1 — DNS cutover ✅ Complete (verified 2026-06-12)
 
 - [x] Add `mentorship.sonsiel.org` as a domain on the Vercel project.
-- [x] DNS points at Vercel — `mentorship.sonsiel.org` resolves to 76.76.21.21 and serves the production deployment (same ETag as `replit-mentorship.vercel.app`).
+- [x] DNS points at Vercel — `mentorship.sonsiel.org` resolves to 76.76.21.21 and serves the production deployment (same ETag as `sonsiel-mentorship.vercel.app`).
 - [x] Set `APP_URL=https://mentorship.sonsiel.org` in Vercel production env (2026-06-12) and redeployed production to pick it up.
 - [ ] Re-upload 10 program guides via admin UI.
 
@@ -183,7 +183,7 @@ See sections below. DNS cutover and deploy wrap-up are complete (2026-06-12); re
 
 Done as part of Phase 3 (1.1.0):
 
-- [x] Delete `server/replit_integrations/`.
+- [x] Delete the legacy object-storage integration directory.
 - [x] Drop `@google-cloud/storage`, `google-auth-library`, `@uppy/*`.
 
 Done as part of Phase 2 (1.2.0):
@@ -193,15 +193,15 @@ Done as part of Phase 2 (1.2.0):
 
 General hygiene:
 
-- [x] Drop the three `@replit/vite-plugin-*` from `devDependencies` (commit `cbb2f12`).
+- [x] Drop the three legacy host-specific Vite plugins from `devDependencies` (commit `cbb2f12`).
 - [x] Delete `cookies.txt` and `prod_cookies.txt` from the repo root (2026-06-12).
 - [x] Delete `production-migration.sql` (2026-06-12).
-- [x] Delete `.replit` and `replit.md` (2026-06-12).
+- [x] Delete the legacy host config files (2026-06-12).
 - [x] Delete the legacy `script/build.ts` and `build:legacy` npm script (already gone).
 - [x] `/tmp/mentorship-source.dump` no longer present.
-- [ ] Drop the Replit-managed Neon project from Neon dashboard (no longer in use).
+- [ ] Drop the legacy platform-managed Neon project from the Neon dashboard (no longer in use).
 - [x] Update `DEPLOYMENT_GUIDE.md` to reflect Vercel as the primary host (2026-06-12).
-- [ ] Decommission the old Replit project (read-only fallback period at owner's discretion).
+- [ ] Decommission the old pre-Vercel hosting project (read-only fallback period at owner's discretion).
 
 ---
 
@@ -235,7 +235,7 @@ All 14 pre-existing errors were fixed in commit `13ddd03`. `npm run check` passe
 1. **Existing files in the document library** — migrate them, or accept that pre-Phase-1 uploads are gone?
 2. **Profile photo URL convention** — store full Blob URLs (preferred) or keep an indirection route?
 3. **Communication plan for DNS cutover** — when, and to whom?
-4. **Replit project decommissioning** — keep around as a read-only fallback for a month, or shut down on cutover day?
+4. **Legacy host decommissioning** — keep around as a read-only fallback for a month, or shut down on cutover day?
 5. **Default super-admin password** — `SuperAdmin123!` is in `DEPLOYMENT_GUIDE.md` and was potentially the original seed value. Has it been rotated for the production accounts? (`mentor@sonsiel.org`, `xyrn@outlook.com`)
 6. **NurseHack4Health** — soft-deleted. Should it be hard-deleted (drop the row + the 2 admin memberships), or stay as inactive in case of revival?
 

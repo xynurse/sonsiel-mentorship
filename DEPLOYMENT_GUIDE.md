@@ -2,7 +2,7 @@
 
 How to deploy and operate this platform on **Vercel**, and how to stand up a new instance for a different program.
 
-> The production instance lives at **https://mentorship.sonsiel.org** (Vercel project `replit-mentorship`). For feature documentation see [FEATURES.md](./FEATURES.md); for release history see [CHANGELOG.md](./CHANGELOG.md); for open work see [TODO.md](./TODO.md).
+> The production instance lives at **https://mentorship.sonsiel.org** (Vercel project `sonsiel-mentorship`). For feature documentation see [FEATURES.md](./FEATURES.md); for release history see [CHANGELOG.md](./CHANGELOG.md); for open work see [TODO.md](./TODO.md).
 
 ## Architecture
 

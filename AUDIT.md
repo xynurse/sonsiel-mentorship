@@ -1,6 +1,6 @@
 # Deployment Audit — Vercel Phase 1
 
-**Audited URL:** `https://replit-mentorship.vercel.app`
+**Audited URL:** `https://sonsiel-mentorship.vercel.app`
 **Date:** 2026-05-03
 **Method:** Read-only API smoke testing, frontend route fetching, code review of import graph.
 
@@ -8,7 +8,7 @@
 
 ## Summary
 
-Phase 1 deployment is healthy. The SPA shell loads on every tested route (HTTP 200), all API endpoints answer with proper JSON (401 when auth-gated, never a 5xx HTML leak), and basic CRUD/auth/email flows reach the database. Real-time and file-byte transport are both broken as expected — socket.io has no server (the client will reconnect-loop) and any code path touching the Replit GCS sidecar will 500 once exercised.
+Phase 1 deployment is healthy. The SPA shell loads on every tested route (HTTP 200), all API endpoints answer with proper JSON (401 when auth-gated, never a 5xx HTML leak), and basic CRUD/auth/email flows reach the database. Real-time and file-byte transport are both broken as expected — socket.io has no server (the client will reconnect-loop) and any code path touching the legacy GCS sidecar will 500 once exercised.
 
 Nothing surprising surfaced beyond what's already documented. The migration is in the predicted "skeleton works, media + realtime are dead" state.
 
@@ -60,7 +60,7 @@ Nothing surprising surfaced beyond what's already documented. The migration is i
 ### ❌ Hard broken
 
 - **Phase 2 — socket.io server entirely stubbed.** `server/websocket.ts` exports no-ops. Documented and expected.
-- **Phase 3 — Replit GCS sidecar.** `server/replit_integrations/object_storage/objectStorage.ts` still hardcodes `http://127.0.0.1:1106`. Every read/write path will hit a closed port on Vercel. Documented and expected.
+- **Phase 3 — Legacy GCS sidecar.** The legacy `objectStorage.ts` still hardcodes `http://127.0.0.1:1106`. Every read/write path will hit a closed port on Vercel. Documented and expected.
 
 ---
 
@@ -90,7 +90,7 @@ Nothing surprising surfaced beyond what's already documented. The migration is i
 2. **Phase 2 (Ably) second.** Adds polish to messaging and notifications. Users can survive REST-only messaging short-term; the only acute symptom is console noise.
 3. **Cleanup before cutover.**
    - Remove the `/objects/(.*)` rewrite from `vercel.json` once Blob is live.
-   - Delete `server/replit_integrations/`.
+   - Delete the legacy object-storage integration directory.
    - Delete the websocket stub once the Ably hook lands.
    - Confirm `socket.io-client` is dropped from the client bundle if no longer used.
 4. **Nice-to-have.** Add a Vercel Cron for any audit/reminder sweep work that previously ran in-process (none found, but worth confirming with the product team that nothing is silently expected to tick).
@@ -100,7 +100,7 @@ Nothing surprising surfaced beyond what's already documented. The migration is i
 ## Key files referenced
 
 - `server/routes.ts` — sidecar call sites at lines 1597, 3204, 3271; upload route registered at 2985.
-- `server/replit_integrations/object_storage/objectStorage.ts` — hardcoded `127.0.0.1:1106` at line 12.
+- Legacy `objectStorage.ts` (object-storage integration) — hardcoded `127.0.0.1:1106` at line 12.
 - `server/websocket.ts` — Phase 1 stub.
 - `client/src/hooks/use-messaging.tsx` — client `io()` at line ~94.
 - `client/src/components/notification-bell.tsx` — client `io()` at line ~165.
@@ -126,4 +126,4 @@ If you need to reproduce these findings:
 - `grep -rn "socket.io" client/src/` — confirms remaining client realtime calls.
 - `grep -rn "user.profileImage\|profileImage =" client/src/` — confirms direct-bind usage.
 - `npm run build` — should succeed and produce `dist/server.mjs` (~480 KB) and `dist/public/`.
-- `vercel inspect https://replit-mentorship.vercel.app --logs --scope mike-9206s-projects` — full build log.
+- `vercel inspect https://sonsiel-mentorship.vercel.app --logs --scope xyrn` — full build log.
